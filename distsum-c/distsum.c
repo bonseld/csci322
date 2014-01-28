@@ -1,6 +1,6 @@
 /**
  * Dylan Bonsell
- * globalsum.c
+ * distsum.c
  * 1/23/2014
 **/
 
@@ -9,7 +9,7 @@
 #include <math.h>
 
 /* Global Variables */
-int LINELEN = 1024;
+int LINELEN = 99999;
 
 /* Prototypes */
 void printcores(int cores);
@@ -77,18 +77,9 @@ void printcores(int cores){
 		step++;
 	}
 }
-
-void receiveValueFromCore(int n, int value){
-	return;
-}
-
-void sendValueToCore(int n, int my_x){
-	return;
-}
-
 int main(int argc, char **argv){
 	// Check for correct arguments
-	if (argc != 2){
+	if (argc != 2 || argv[1] == NULL || argv[1] == '\0'){
 		printf("You have not entered an argment.\n Please use the format .\\distsum #cores \n");
 		return 1;
 	}
