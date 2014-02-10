@@ -1,6 +1,6 @@
 /**
  * Dylan Bonsell
- * part2.c
+ * part1.c
  * Implements the centralized solution to find the max,
  * then prints out the time it takes to complete.
  */
@@ -31,6 +31,8 @@ int main(int argc, char **argv)
  int i;
  for(i = 0; i < iterations; i++){
    max = 0;
+
+
    /* Initialization of MPI */
    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
    ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -49,6 +51,15 @@ int main(int argc, char **argv)
         }
     }
   }
+
+
+
+
+
+
+
+
+  
   MPI_Barrier(MPI_COMM_WORLD); // Blocks to get Wtime
   end = MPI_Wtime(); // Get end time
   ierr = MPI_Finalize(); // Close MPI
@@ -56,3 +67,44 @@ int main(int argc, char **argv)
   if(my_id == root_process) 
       printf("The time spent was %f seconds\n", end-begin);
 }
+
+  tag = 201;
+  next = (rank + 1) % size;
+  from = (rank + size - 1) % size;
+
+
+
+
+
+if (rank == 0) {
+    printf("Enter the number of times around the ring: ");
+    num = 1
+
+    printf("Process %d sending %d to %d\n", rank, num, next);
+    MPI_Send(&num, 1, MPI_INT, next, tag, MPI_COMM_WORLD); 
+  }
+
+  while (1) {
+
+    MPI_Recv(&num, 1, MPI_INT, from, tag, MPI_COMM_WORLD, &status);
+    printf("Process %d received %d\n", rank, num);
+
+    if (rank == 0) {
+      num--;
+      printf("Process 0 decremented num\n");
+    }
+
+    printf("Process %d sending %d to %d\n", rank, num, next);
+    MPI_Send(&num, 1, MPI_INT, next, tag, MPI_COMM_WORLD);
+
+    if (num == 0) {
+      printf("Process %d exiting\n", rank);
+      break;
+    }
+  }
+
+  /* The last process does one extra send to process 0, which needs */
+  /* to be received before the program can exit */
+
+  if (rank == 0)
+    MPI_Recv(&num, 1, MPI_INT, from, tag, MPI_COMM_WORLD, &status);
