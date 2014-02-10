@@ -21,6 +21,7 @@ int main(int argc, char **argv)
  long int partial_max, max; 
  unsigned int seed; 
  MPI_Status status;
+ MPI_Request request;
  int iterations = 1000; 
  root_process = 0;
  ierr = MPI_Init(&argc, &argv); // Start MPI
@@ -33,20 +34,19 @@ int main(int argc, char **argv)
    /* Initialization of MPI */
    ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
    ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-     /* Process 0 */
-     if(my_id == root_process) {
-      for(an_id = 1; an_id < num_procs; an_id++) {
-        ierr = MPI_Recv( &partial_max, 1, MPI_LONG, MPI_ANY_SOURCE,return_data_tag, MPI_COMM_WORLD, &status);
-        if(partial_max > max)
-          max = partial_max;
-      }
-    }
-    /* All other processes */
-    else {
       seed = (unsigned)time(NULL)+my_id*num_procs*i + name_len;
-      //sleep(seed %5+1);
       partial_max = rand_r(&seed)%500000+1;
-      ierr = MPI_Send( &partial_max, 1, MPI_LONG, root_process, return_data_tag, MPI_COMM_WORLD);
+      for(an_id = 1; an_id < num_procs; an_id++) {
+        if (an_id != my_id)
+          ierr = MPI_Isend( &partial_max, 1, MPI_LONG, an_id, return_data_tag, MPI_COMM_WORLD, &request);
+        }
+      
+      for(an_id = 1; an_id < num_procs; an_id++) {
+        if (an_id != my_id){
+          ierr = MPI_Irecv( &partial_max, 1, MPI_LONG, an_id ,return_data_tag, MPI_COMM_WORLD, &request);
+          if(partial_max > max)
+            max = partial_max;
+        }
     }
   }
   MPI_Barrier(MPI_COMM_WORLD); // Blocks to get Wtime
