@@ -21,7 +21,7 @@ int main(int argc, char **argv)
  long int partial_max, max; 
  unsigned int seed; 
  MPI_Status status;
- int iterations = 1000; 
+ int iterations = 10000; 
  root_process = 0;
  ierr = MPI_Init(&argc, &argv); // Start MPI
  MPI_Barrier(MPI_COMM_WORLD); // Blocks to get Wtime 

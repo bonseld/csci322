@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
  unsigned int seed; 
  MPI_Status status;
  MPI_Request request;
- int iterations = 1000; 
+ int iterations = 10000; 
  root_process = 0;
  ierr = MPI_Init(&argc, &argv); // Start MPI
  MPI_Barrier(MPI_COMM_WORLD); // Blocks to get Wtime 
