@@ -54,5 +54,5 @@ int main(int argc, char **argv)
   ierr = MPI_Finalize(); // Close MPI
   /* Print the time taken if root_process*/
   if(my_id == root_process) 
-      printf("The time spent was %f seconds\n", end-begin);
+      printf("%f\n", end-begin);
 }

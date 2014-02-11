@@ -26,8 +26,7 @@ int main(int argc, char** argv) {
     ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     seed = (unsigned)time(NULL)+my_id*num_procs*i + name_len;
     partial_max = rand_r(&seed)%500000+1;
-    // Receive from the lower process and send to the higher process. Take care
-    // of the special case when you are the first process to prevent deadlock.
+
     if (my_id != 0) {
       MPI_Recv(&partial_max, 1, MPI_INT, my_id - 1, 0, MPI_COMM_WORLD,
                MPI_STATUS_IGNORE);
@@ -36,9 +35,7 @@ int main(int argc, char** argv) {
       }
     MPI_Send(&partial_max, 1, MPI_INT, (my_id + 1) % num_procs, 0,
              MPI_COMM_WORLD);
-    // Now process 0 can receive from the last process. This makes sure that at
-    // least one MPI_Send is initialized before all MPI_Recvs (again, to prevent
-    // deadlock)
+
     if (my_id == root_process) {
       MPI_Recv(&partial_max, 1, MPI_INT, num_procs - 1, 0, MPI_COMM_WORLD,
                MPI_STATUS_IGNORE);
@@ -49,5 +46,5 @@ int main(int argc, char** argv) {
   ierr = MPI_Finalize(); // Close MPI
   /* Print the time taken if root_process*/
   if(my_id == root_process) 
-      printf("The time spent was %f seconds\n", end-begin);
+      printf("%f\n", end-begin);
 }
