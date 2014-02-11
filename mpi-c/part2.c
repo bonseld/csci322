@@ -36,16 +36,18 @@ int main(int argc, char **argv)
    ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
       seed = (unsigned)time(NULL)+my_id*num_procs*i + name_len;
       partial_max = rand_r(&seed)%500000+1;
-      for(an_id = 1; an_id < num_procs; an_id++) {
-        if (an_id != my_id)
-          ierr = MPI_Isend( &partial_max, 1, MPI_LONG, an_id, return_data_tag, MPI_COMM_WORLD, &request);
-        }
+      
       
       for(an_id = 1; an_id < num_procs; an_id++) {
         if (an_id != my_id){
           ierr = MPI_Irecv( &partial_max, 1, MPI_LONG, an_id ,return_data_tag, MPI_COMM_WORLD, &request);
           if(partial_max > max)
             max = partial_max;
+        }
+
+      for(an_id = 1; an_id < num_procs; an_id++) {
+        if (an_id != my_id)
+          ierr = MPI_Isend( &partial_max, 1, MPI_LONG, an_id, return_data_tag, MPI_COMM_WORLD, &request);
         }
     }
   }
