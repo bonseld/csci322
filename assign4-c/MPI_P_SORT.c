@@ -16,24 +16,33 @@ int main(int argc, char **argv)
 {
 /* Variables */
  double begin, end; // Timing Variables
- int my_id, root_process, ierr, num_procs, an_id, sender, name_len, size;
+ int my_id, root_process, ierr, num_procs, an_id, sender, name_len, size, i;
  char processor_name[MPI_MAX_PROCESSOR_NAME]; // Temp to generate seed
  long int partial_max, max; 
  unsigned int seed; 
  MPI_Status status;
  int iterations = 10000; 
  root_process = 0;
+
+ 
+
  ierr = MPI_Init(&argc, &argv); // Start MPI
  MPI_Barrier(MPI_COMM_WORLD); // Blocks to get Wtime 
  begin = MPI_Wtime(); // Start Time
- fputs ("Size:  ", stdout);
- scanf ("%d", &size);
- int randoms[size]; // Array for random ints
- seed = (unsigned)time(NULL)+my_id*num_procs*i + name_len;
- for(int i = 0; i < size; ++i)
-    randoms[i] = rand_r(&seed)%500000+1;;
+ ierr = MPI_Comm_rank(MPI_COMM_WORLD, &my_id);
+ if(my_id == root_process){
+     fputs ("Size:  ", stdout);
+     scanf ("%d", &size);
+     int randoms[size]; // Array for random ints
+            
+     seed = (unsigned)time(NULL)+my_id*num_procs*i + name_len;
+     for(i = 0; i < size; ++i){
+         randoms[i] = rand_r(&seed)%500000+1;
+      }
+ }
+
+ 
  MPI_Get_processor_name(processor_name, &name_len); // Get the processor time to add to seed
- int i;
  for(i = 0; i < iterations; i++){
    max = 0;
    /* Initialization of MPI */
@@ -41,6 +50,8 @@ int main(int argc, char **argv)
    ierr = MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
      /* Process 0 */
      if(my_id == root_process) {
+
+
       for(an_id = 1; an_id < num_procs; an_id++) {
         ierr = MPI_Recv( &partial_max, 1, MPI_LONG, MPI_ANY_SOURCE,return_data_tag, MPI_COMM_WORLD, &status);
         if(partial_max > max)
