@@ -1,159 +1,150 @@
 
 #include <stdio.h>
-#include <stdlib.h>     // for rand, etc.
-#include <string.h>     // for memcpy
-#include <time.h>       // for time(NULL)
+#include <stdlib.h>     
+#include <string.h>     
+#include <time.h>       
 #include <mpi.h>
 
-//#define  DEBUG
 
-#define  INIT  1        // Message giving size and height
-#define  DATA  2        // Message giving vector to sort
-#define  ANSW  3        // Message returning sorted vector
-#define  FINI  4        // Send permission to terminate
+#define  INIT  1        
+#define  DATA  2        
+#define  ANSW  3        
+#define  FINI  4       
 
-// Required by qsort()
+// Compariator for qsort()
 int compare (const void* left, const void* right);  // for qsort()
 
 // Parallel merge logic under MPI
-void parallelMerge (long *vector, int size, int myHeight);
+void parallelMerge (long *vector, int size, int my_height);
 
-// Generate a vector of random data for a size.  Modify the
-// variables vector and size by writing through the pointers
-// passed (i.e., pointer to long* and pointer to int).
+// Generate a vector of random data for a size
 void getData (long **vPtr, int *sizePtr);
 
 int main ( int argc, char* argv[] )
 {
    int my_id, num_procs;
-   int rc;
-   int   size;          // Size of the vector being sorted
-   long *vector,        // Vector for parallel sort
-        *solo;          // Copy for sequential sort
-   double start,        // Begin parallel sort
-          middle,       // Finish parallel sort
-          finish;       // Finish sequential sort
+   int rc;                       // Save returns for MPI calls
+   int size;                     // Size of the vector being sorted
+   long *vector, *solo;          // Copy for sequential sort
+   double start, middle, finish; // Variable for times
+   int root_process = 0;         // Variable for Root Process
 
-   rc = MPI_Init(&argc, &argv);
-   srand(time(NULL));// Set up for shuffling
+   rc = MPI_Init(&argc, &argv); 
+   // Seed for random
+   srand(time(NULL));
 
+   // Error Handling
    if (rc < 0)
    {
       puts ("Failed to enroll in MPI.  Abort!");
       exit(-1);
    }
 
+   // Get size from argument, if not prompt in 
    if(argc > 1)
+   {
       size = atoi(argv[1]);
+   }
 
    rc = MPI_Comm_rank (MPI_COMM_WORLD, &my_id);
    rc = MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
-
-   if ( my_id == 0 )        // Host process
+   // I am the root process!
+   if (my_id == root_process)        
    {
-      int rootHt = 0;
-      int nodeCount = 1;
+      int root_height = 0;
+      int node_count = 1;
 
-      while (nodeCount < num_procs)
+      // Calculate the Root Height
+      while (node_count < num_procs)
       {
-         nodeCount += nodeCount; rootHt++;
+         node_count += node_count; root_height++;
       }
-
-      printf ("%d processes mandates root height of %d\n", num_procs, rootHt);
+      // Print the root height
+      printf ("%d processes and root height of %d\n", num_procs, root_height);
 
       getData (&vector, &size);   // The vector to be sorted.
 
-   // Capture time to sequentially sort the idential array
+      // Allocate solo and vector
       solo = (long*) calloc ( size, sizeof *solo );
       memcpy (solo, vector, size * sizeof *solo);
 
       start = MPI_Wtime();
-      parallelMerge ( vector, size, rootHt);
+      // Run MPI Parallel Mergesort
+      parallelMerge (vector, size, root_height); 
       middle = MPI_Wtime();
    }
-   else                      // Node process
+   // I am a node process!
+   else                      
    {
-      int   iVect[2],        // Message sent as an array
-            height,          // Pulled from iVect
-            parent;          // Computed from my_id and height
-      MPI_Status status;     // required by MPI_Recv
-
+      int   iVect[2], height, parent;// Pulled from iVect
+      MPI_Status status;          
+      // Recieve from node below
       rc = MPI_Recv( iVect, 2, MPI_INT, MPI_ANY_SOURCE, INIT,
            MPI_COMM_WORLD, &status );
       size   = iVect[0];     // Isolate size
       height = iVect[1];     // and height
+      // Malloc vector
       vector = (long*) calloc (size, sizeof *vector);
 
       rc = MPI_Recv( vector, size, MPI_LONG, MPI_ANY_SOURCE, DATA,
            MPI_COMM_WORLD, &status );
-
-      parallelMerge ( vector, size, height );
+      // Recursivly call parallelMerge
+      parallelMerge (vector, size, height);
 
       MPI_Finalize();
       return 0;
    }
-// Only the rank-0 process executes here.
-
+   // MPI is finished, so only 1 core now
+   // Calculate sequential mergesort for comparison
    qsort( solo, size, sizeof *solo, compare );
-
    finish = MPI_Wtime();
 
    printf ("  Parallel:  %3.5f\n", (middle-start));
    printf ("Sequential:  %3.5f\n", (finish-middle));
    printf ("  Speed-up:  %3.5f\n", (finish-middle)/(middle-start));
+   // Garuntee cleanup of MPI
    MPI_Finalize();
 }
 
-// If *sizePtr == 0, dialog with the user; otherwise use the
-// specified size.  Generate a vector of that size, fill it
-// so that x[k] = k+1, and then shuffle the vector.
-int nextInt(int ceiling)
-{  
-   return (int) ((double)rand() * ceiling / RAND_MAX);  
-}
 
-/**
- * Shuffle the entire array
-**/
+// Shuffle the entire array
 void shuffleArray (long* x, int lim)
 {  
    while (lim > 1)
    {  
       int item;
       int save = x[lim-1];
-      item = nextInt(lim);
+      item = (int)((double)rand() * lim / RAND_MAX);
       x[--lim] = x[item];
       x[item] = save;
    } 
 }
 
-// If *sizePtr == 0, dialog with the user; otherwise use the
-// specified size.  Generate a vector of that size, fill it
-// so that x[k] = k+1, and then shuffle the vector.
+// Get data for MPI Merge Sort
 void getData ( long **vPtr, int *sizePtr )
 {
-   int   size;
-   int   k;
+   int size, i;
    long *data;
-
+   // Get size if not command line arg, else print size
    fputs ("Size:  ", stdout);
-   if ( *sizePtr == 0 )
+   if (*sizePtr == 0 )
       scanf ("%d", &size);
    else
    {
       size = *sizePtr;
       printf ("%d\n", size);
    }
-   data = (long*) calloc ( size, sizeof *data );
-   for ( k = 0; k < size; k++ )
-      data[k] = k+1;
-   shuffleArray ( data, size );
-   // Write the results back through the pointer parameters
+   // Malloc Data
+   data = (long*) calloc (size, sizeof *data);
+   for (i = 0; i < size; i++)
+      data[i] = i+1;
+   // Randomize Array
+   shuffleArray (data, size);
+   // Use pass by reference to return data and size
    *vPtr = data;
    *sizePtr = size;
 }
-
 
 // Required by qsort()
 int compare ( const void* left, const void* right )
@@ -175,7 +166,7 @@ int compare ( const void* left, const void* right )
  * recurses on this function to process the left-hand side, as
  * the node one closer to the leaf level.
  */
-void parallelMerge ( long *vector, int size, int myHeight )
+void parallelMerge (long *vector, int size, int my_height)
 {  
    int parent;
    int my_id, num_procs;
@@ -184,15 +175,16 @@ void parallelMerge ( long *vector, int size, int myHeight )
    rc = MPI_Comm_rank (MPI_COMM_WORLD, &my_id);
    rc = MPI_Comm_size (MPI_COMM_WORLD, &num_procs);
 
-   parent = my_id & ~(1<<myHeight);
-   nxt = myHeight - 1;
+   parent = my_id & ~(1<<my_height);
+   nxt = my_height - 1;
    if (nxt >= 0)
-      rtChild = my_id | ( 1 << nxt );
+      rtChild = my_id | (1 << nxt);
 
-   if (myHeight > 0)
-   {//Possibly a half-full node in the processing tree
-      if ( rtChild >= num_procs )     // No right child.  Move down one level
-         parallelMerge ( vector, size, nxt );
+   if (my_height > 0)
+   {
+      // No right child
+      if (rtChild >= num_procs)     
+         parallelMerge (vector, size, nxt);
       else
       {
          int   left_size  = size / 2,
@@ -208,40 +200,32 @@ void parallelMerge ( long *vector, int size, int myHeight )
 
          iVect[0] = right_size;
          iVect[1] = nxt;
-         rc = MPI_Send( iVect, 2, MPI_INT, rtChild, INIT,
-              MPI_COMM_WORLD);
-         rc = MPI_Send( rightArray, right_size, MPI_LONG, rtChild, DATA,
-              MPI_COMM_WORLD);
+         rc = MPI_Send(iVect, 2, MPI_INT, rtChild, INIT, MPI_COMM_WORLD);
+         rc = MPI_Send(rightArray, right_size, MPI_LONG, rtChild, DATA, MPI_COMM_WORLD);
 
-         parallelMerge ( leftArray, left_size, nxt );
+         parallelMerge (leftArray, left_size, nxt);
 
-         rc = MPI_Recv( rightArray, right_size, MPI_LONG, rtChild, ANSW,
-              MPI_COMM_WORLD, &status );
+         rc = MPI_Recv(rightArray, right_size, MPI_LONG, rtChild, ANSW, MPI_COMM_WORLD, &status);
 
          // Merge the two results back into vector
          i = j = k = 0;
-         while ( i < left_size && j < right_size )
-            if ( leftArray[i] > rightArray[j])
+         while (i < left_size && j < right_size)
+            if (leftArray[i] > rightArray[j])
                vector[k++] = rightArray[j++];
             else
                vector[k++] = leftArray[i++];
-         while ( i < left_size )
+         while (i < left_size)
             vector[k++] = leftArray[i++];
-         while ( j < right_size )
+         while (j < right_size)
             vector[k++] = rightArray[j++];
       }
    }
+   // Sort data in my array
    else
    {
-      qsort( vector, size, sizeof *vector, compare );
+      qsort(vector, size, sizeof *vector, compare);
    }
-
-/**
- * Note:  If the computed parent is different from my_id, then
- * this is a right-hand side and needs to be sent as a message
- * back to its parent.  Otherwise, the "communication" is done
- * automatically because the result is generated in place.
- */
+   // Send data if not parent
    if (parent != my_id)
       rc = MPI_Send(vector, size, MPI_LONG, parent, ANSW, MPI_COMM_WORLD);
 }
