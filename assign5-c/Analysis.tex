@@ -1,0 +1,58 @@
+\documentclass[dvips]{article}
+\usepackage{graphicx}
+ 
+\begin{document}
+
+\title{Analysis of Producer/Consumer Problem with Pthreads}
+ 
+\author{Dylan Bonsell}
+ 
+\maketitle % this produces the title block
+ 
+\section{Introduction}
+
+The producer consumer problem is an age old synchronization problem. Also known as the bounded-buffer problem, it describes two processes, who share a common buffer. The producer generates a piece of data and puts it into the buffer, and the consumer reads it. The problem is to make sure that the producer won't try to add data into the buffer if it's full and that the consumer won't try to remove data from an empty buffer.
+
+\section{Analysis}
+ 
+\subsection{Abstract}
+
+For this assignment, I programmed a solution to the problem with semephores and condition variables.
+
+All of my times are on an i7 @ 4.8GHz x 8, 8GB of DDR3 2333 ram, and a ssd.
+
+I ran each of the tests 5 times, averaged the time, and then did my comparisons. This way, the times are an accurate representation of the algorithm itself,
+rather than having an outlier because of background CPU usage. 
+
+\subsection{Compilation \& Running}
+ This program uses a standard make call to compile both.
+
+ Both programs take in loop size n from the argument list, such as:
+ \begin{verbatim}
+  ./Program $n$
+ \end{verbatim}
+
+\subsection{Data}
+Below is the data for the experiment:
+\\*
+\\*
+For n = 1,000,000
+\\*
+\begin{tabular}{ l | c r }
+   & Sem & Cond \\
+  \hline
+  Average & 6.886 &  6.162\\
+  \hline
+
+\end{tabular}
+\\*
+\\*
+\\*
+\subsection{Data Analysis}
+
+Overall, it seems that using condition variables is slightly faster than using semephores.
+
+Both of my programs are included, and I have stepped through them to insure that they do correctly solve the problem.
+
+\end{document}
+
