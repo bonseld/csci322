@@ -34,12 +34,10 @@
 
  	for (row = n-1; row >= 0; row--){
  		local_x = b[row];
-
- 		#pragma omp parallel for reduction(- : local_x)
+ 		#pragma omp parallel for schedule(dynamic) reduction(- : local_x)
  		for (col = row+1; col < n; col++){
  			local_x = A[row][col]*x[col];
  		}
-
  		x[row] = local_x;
  		x[row] /= A[row][row];
  	}

@@ -34,9 +34,10 @@
 
  	for (row = 0; row < n; row++)
  		x[row] = b[row];
+
  	for (col = n-1; col >= 0; col--){
  		x[col] /= A[col][col];
- 		#pragma omp parallel for 
+ 		#pragma omp parallel for schedule(dynamic) 
  		for (row = 0; row < col; row++)
  			x[row] -= A[row][col]*x[col];
  	}

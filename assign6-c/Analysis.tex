@@ -1,0 +1,91 @@
+\documentclass[dvips]{article}
+\usepackage{graphicx}
+ 
+\begin{document}
+
+\title{Analysis of Gaussian Elimination with OpenMP}
+ 
+\author{Dylan Bonsell}
+ 
+\maketitle % this produces the title block
+ 
+\section{Introduction}
+
+Gaussian Elimination is a major tool in solving systems of equations. By making such a thing parallel, we can increase the time it takes to get solutions to massive problems.
+
+\section{Analysis}
+ 
+\subsection{Abstract}
+
+For this assignment, I programmed a solution to the problem with two programs, row.c and col.c.
+
+All of my times are on an i7 @ 4.8GHz x 8, 8GB of DDR3 2333 ram, and a ssd.
+
+I ran each of the tests 5 times, averaged the time, and then did my comparisons. This way, the times are an accurate representation of the algorithm itself,
+rather than having an outlier because of background CPU usage. 
+
+\subsection{Answers}
+
+The solutions to the book questions are:
+\\*
+A: No. The outer loop of the row-oriented algorithm cannot be parallelized, as each row requires the row
+below it.
+\\*
+B: Yes. The inner loop does not overwrite itself, if compiled correctly!
+To work around x[row] from overwriting, you can use the call:
+ \begin{verbatim}
+ #pragma omp parallel for reduction(- : local_x)
+ \end{verbatim}
+which will reduce, then you can put the local\_x back into x[row]
+\\*
+C: No. Again, the outer loop requires the previous column to have been completed.
+\\*
+D: Yes. There are no special calls for this one, you can simply use parallel for to make it parallel.
+\\*
+
+\subsection{Compilation \& Running}
+ This program uses a standard make call to compile both.
+
+ Both programs take in num threads from the argument list, such as:
+ \begin{verbatim}
+  ./Program $num_threads$
+  \end{verbatim}
+
+ If this is not included, OpenMP will determine this as per default.
+
+\subsection{Data}
+Below is the data for the experiment:
+\\*
+\\*
+For n = 10,000, no scheduling
+\\*
+\begin{tabular}{ l | c r }
+   & Row & Col \\
+  \hline
+  Average & .748 &  1.314\\
+  \hline
+
+\end{tabular}
+\\*
+\\*
+For n = 10,000, Scheduling
+\\*
+\begin{tabular}{ l | c r }
+   & Row & Col \\
+  \hline
+  Average for Guided & .882 &  1.954\\
+  \hline
+   Average for Static & .56 &  1.324\\
+  \hline
+   Average for Dynamic & 8.078 &  9.416\\
+  \hline
+\end{tabular}
+\\*
+\subsection{Data Analysis}
+
+I found it odd that dynamic was so inefficient, as it had a magnatude of 9 times the other times. 
+As for the others, it seems that static scheduling workes well, I suspected that it is the default, but was
+unable to find any information on what it uses as default.
+
+\end{document}
+
