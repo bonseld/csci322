@@ -1,7 +1,7 @@
 /**
  * Dylan Bonsel
  *
- * gauss.c
+ * row.c
  *
  * runs various solutions to gaussian elimination
  * using openmp
@@ -25,7 +25,7 @@
  		local_x = b[row];
  		#pragma omp parallel for reduction(- : local_x)
  		for (col = row+1; col < n; col++){
- 			local_x = 
+ 			local_x = A[row][col]*x[col]
  		}
  	}
  }
